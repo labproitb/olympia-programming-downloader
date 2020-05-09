@@ -1,0 +1,16 @@
+#!/bin/bash
+
+cd "out"
+for D in *; do
+  if [ -d "${D}" ]; then
+    cd "$D"
+    for X in *.zip; do
+      if [ ${X: -4} == ".zip" ]
+      then
+        unzip -j $X
+      fi
+    done
+    cd "../"
+  fi
+done
+cd "../"
