@@ -131,16 +131,20 @@ class Olympia(requests.Session):
                 pass
         return result
 
-    def get_quiz_attempt_submission(self, attempt_id):
+    def get_quiz_attempt_submissions(self, attempt_id):
         # NOTE: this will return the LAST submission of the attempt
         #       notice that each attempt, user can retry the question
         r = self.get(f'{self.URL_QUIZ_REVIEW}?attempt={attempt_id}')
         s = BeautifulSoup(r.text, 'html.parser')
 
-        attachment_block = s.find('div', attrs={'class': 'attachments'})
-        if attachment_block is None or attachment_block.p is None:
-            raise Exception('Can\'t find submission')
-        return attachment_block.p.a['href']
+        submissions = []
+        attachment_blocks = s.find_all('div', attrs={'class': 'attachments'})
+        if attachment_blocks is None or len(attachment_blocks) == 0:
+            raise Exception('No submission found')
+        for attachment_block in attachment_blocks:
+            if attachment_block.p is not None:
+                submissions.append(attachment_block.p.a['href'])
+        return submissions
 
 
 def download_file(url, filepath=None, session=None):
@@ -187,15 +191,16 @@ if __name__ == "__main__":
     download_attempts = []
     for user_attempt_id, user_name in attempts:
         try:
-            user_attempt_link = olympia_session.get_quiz_attempt_submission(user_attempt_id)
+            user_attempt_links = olympia_session.get_quiz_attempt_submissions(user_attempt_id)
 
-            url_parsed = urlparse(user_attempt_link)
-            filename = os.path.basename(url_parsed.path)
-            filepath = f'out/{user_name}/{filename}'
-            print('{:7d} {} {}'.format(user_attempt_id, user_name, user_attempt_link))
-            download_attempts.append((user_attempt_link, filepath))
-        except Exception:
-            print('{:7d} {} no submission'.format(user_attempt_id, user_name))
+            for link in user_attempt_links:
+                url_parsed = urlparse(link)
+                filename = os.path.basename(url_parsed.path)
+                filepath = f'out/{user_name}/{filename}'
+                print('{:7d} {} {}'.format(user_attempt_id, user_name, link))
+                download_attempts.append((link, filepath))
+        except Exception as e:
+            print('{:7d} {} {}'.format(user_attempt_id, user_name, str(e)))
 
     # Download 10 files at a time
     download_pools = Pool(10)
