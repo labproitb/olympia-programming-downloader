@@ -109,7 +109,7 @@ class Olympia(requests.Session):
             'stateabandoned': 1,
             'onlygraded': 1,
             'onlyregraded': 0,
-            'pagesize': 200,
+            'pagesize': 400,
             'slotmarks': 1,
         }
 
