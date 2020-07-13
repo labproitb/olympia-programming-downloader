@@ -1,6 +1,8 @@
 from bs4 import BeautifulSoup
 from multiprocessing.pool import Pool
 from urllib.parse import urlparse
+from getpass import getpass
+from tqdm import tqdm
 import errno
 import os
 import re
@@ -87,6 +89,7 @@ class Olympia(requests.Session):
             quiz_id = int(re.search('id=(\\d+)', link).group(1))
             quiz_name = str(quiz.find('span', attrs={'class': 'instancename'}).contents[0])
             result.append((quiz_id, quiz_name))
+        result.sort()
         return result
 
     def get_quiz_report(self, quiz_id):
@@ -173,8 +176,8 @@ def download_file(url, filepath=None, session=None):
 if __name__ == "__main__":
     olympia_session = Olympia()
 
-    username = input('Username: ')
-    password = input('Password: ')
+    username = ''  # input('Username: ')
+    password = ''  # getpass('Password: ')
     olympia_session.login(username, password)
 
     courses = olympia_session.get_courses()
@@ -187,6 +190,10 @@ if __name__ == "__main__":
         print('{:6d} {}'.format(quiz_id, quiz_name))
 
     quiz_id = int(input('pilih id quiz: '))
+    quiz_name = ''
+    for _id, _name in quizes:
+        if _id == quiz_id:
+            quiz_name = _name
     attempts = olympia_session.get_quiz_report(quiz_id)
     download_attempts = []
     for user_attempt_id, user_name in attempts:
@@ -196,7 +203,7 @@ if __name__ == "__main__":
             for link in user_attempt_links:
                 url_parsed = urlparse(link)
                 filename = os.path.basename(url_parsed.path)
-                filepath = f'out/{user_name}/{filename}'
+                filepath = f'out/{course_id}/{quiz_id} {quiz_name}/{user_name}/{filename}'
                 print('{:7d} {} {}'.format(user_attempt_id, user_name, link))
                 download_attempts.append((link, filepath))
         except Exception as e:
@@ -207,5 +214,5 @@ if __name__ == "__main__":
     async_results = []
     for url, filepath in download_attempts:
         async_results.append(download_pools.apply_async(download_file, (url, filepath, olympia_session)))
-    for async_result in async_results:
+    for async_result in tqdm(async_results):
         async_result.wait()
