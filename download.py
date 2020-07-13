@@ -176,8 +176,8 @@ def download_file(url, filepath=None, session=None):
 if __name__ == "__main__":
     olympia_session = Olympia()
 
-    username = ''  # input('Username: ')
-    password = ''  # getpass('Password: ')
+    username = input('Username: ')
+    password = getpass('Password: ')
     olympia_session.login(username, password)
 
     courses = olympia_session.get_courses()
